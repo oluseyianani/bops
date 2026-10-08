@@ -143,7 +143,8 @@ const g = globalThis as unknown as { bopsOrgoPlan?: { key: string; changes: numb
 
 /** The user's plan (null when nobody is signed in, or Orgo didn't answer). `fresh` asks Orgo again even within the minute. */
 export async function orgoPlan({ fresh = false } = {}): Promise<OrgoPlan | null> {
-  const key = await loadOrgoKey();
+  // Fork-local: self-hosting on ORGO_API_KEY has nobody signed in; read the plan on that key, as orgo.ts calls do.
+  const key = (await loadOrgoKey()) ?? process.env.ORGO_API_KEY ?? null;
   if (!key) return null;
   const kept = g.bopsOrgoPlan;
   // Another user's key, or a computer made or deleted since: read again.
