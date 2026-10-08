@@ -1,0 +1,29 @@
+# Bops server on trolley (port 3210, loopback only; Caddy fronts it as bops.oluseyi.dev). Install:
+#   sudo cp deploy/bops-server.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now bops-server
+# Needs ~/apps/bops/.env.local (deploy/make-env.sh) and a build (deploy/build.sh). See FORK.md.
+
+[Unit]
+Description=Bops server (self-hosted fork)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=oluseyi
+WorkingDirectory=/home/oluseyi/apps/bops
+Environment=NODE_ENV=production
+Environment=HOSTNAME=127.0.0.1
+Environment=PORT=3210
+# The standalone server reads no .env file; the keys come from here.
+EnvironmentFile=/home/oluseyi/apps/bops/.env.local
+# Next handles SIGTERM itself unless told not to; with this, Bops' own exit work (state save) runs first.
+Environment=NEXT_MANUAL_SIG_HANDLE=true
+ExecStart=/usr/bin/node deploy/start.cjs
+Restart=always
+RestartSec=5
+# trolley: ~3.8 GB RAM shared with boop during the cutover. A spike kills this unit's child, not the box.
+MemoryMax=2G
+OOMPolicy=continue
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,110 @@
+# This fork: Bops on trolley
+
+> Fork-local documentation. Upstream's own docs are README.md and the folder READMEs; this file
+> is deliberately separate so upstream merges never touch it.
+
+## What this fork is
+
+`oluseyianani/bops`, tracking `nickvasilescu/bops` (`upstream`), run as a single-user, self-hosted
+server on trolley (Hetzner, Linux) instead of the Mac app, and reached in a browser at
+https://bops.oluseyi.dev behind Caddy's basic auth. It replaces the `boop-agent` deployment and
+keeps its Sendblue iMessage number.
+
+Rules for fork-local work, so `git merge upstream/main` stays painless:
+
+- New behaviour goes in new files (`lib/server/secrets-file.ts`, `deploy/`, this file). An existing
+  upstream file gets at most a one-line hook per function, marked `Fork-local`.
+- Never delete upstream code; turn it off with an env setting or a platform check instead.
+- Nothing from `.env.local` or `~/.config/bops` is ever committed.
+
+## What was added
+
+| Piece | Where |
+|---|---|
+| Secrets without a macOS Keychain: `.data/secrets.json` (0600), used when `process.platform` isn't darwin | `lib/server/secrets-file.ts`; three hooks in `lib/server/keychain.ts` |
+| `.env.local` from the key files in `~/.config/bops` | `deploy/make-env.sh` |
+| Build and start of the standalone server from the repo root | `deploy/build.sh`, `deploy/start.cjs` |
+| systemd unit (port 3210, loopback, 2 GB cap) and the Caddy block | `deploy/bops-server.service`, `deploy/Caddyfile.snippet` |
+
+Planned: a `sendblue` channel kind next to Telegram and Discord (`lib/server/sendblue.ts`,
+`app/api/channels/sendblue/`), so texts to the old Boop number reach the main bot.
+
+## What the server needs
+
+Hard requirements: an OpenAI API key (pay-per-use; nothing here can use a ChatGPT, Codex or Claude
+subscription), a second restricted, spend-capped OpenAI key that Bops copies onto the bots'
+computers, and an Orgo API key (the free plan gives one free Bops computer). They live in
+`~/.config/bops/{bop_openai,computer_openai,orgo}.env` as `BOPS_OPENAI_API`,
+`COMPUTER_OPENAI_API_RESTRICTED` and `ORGO_API`; `deploy/make-env.sh` turns them into `.env.local`.
+
+Optional, added to `.env.local` by hand later: `HONCHO_API_KEY` (memory), `TYPESAFE_API_KEY`
+(judgment calls), `COMPOSIO_API_KEY` (apps; same key as boop), `TAILSCALE_AUTH_KEY` (live screen
+view over the tailnet), `AGENTMAIL_API_KEY` (bot inboxes), and the Sendblue settings once the
+channel exists.
+
+Models default to `gpt-6.1-sol`; `make-env.sh` pins `BOPS_HARD_MODEL` to it too (astra costs 5x)
+and sets `BOPS_CHAT_EFFORT=high`.
+
+## Development (Mac)
+
+```bash
+ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm ci
+deploy/make-env.sh localhost          # .env.local for a local run
+npx next dev --port 3210              # open http://localhost:3210 in a browser
+npx next typegen && npx tsc --noEmit -p . && npm run lint
+```
+
+## Deploying to trolley
+
+trolley: Ubuntu x86_64, 2 vCPU, ~3.8 GB RAM plus a 2 GB swapfile, Node 24, Caddy, Tailscale.
+Boop keeps running on :3456 until the cutover; Bops takes :3210.
+
+1. **Deploy key** (per-repo, as for boop):
+   ```bash
+   ssh-keygen -t ed25519 -C "trolley bops deploy" -f ~/.ssh/id_ed25519_bops -N ""
+   cat ~/.ssh/id_ed25519_bops.pub   # add: fork repo → Settings → Deploy keys (read-only)
+   cat >> ~/.ssh/config <<'EOC'
+   Host github-bops
+     HostName github.com
+     IdentityFile ~/.ssh/id_ed25519_bops
+     IdentitiesOnly yes
+   EOC
+   git clone git@github-bops:oluseyianani/bops.git ~/apps/bops
+   cd ~/apps/bops && ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm ci
+   ```
+2. **Keys:** copy `~/.config/bops/*.env` from the Mac (`scp`), then `deploy/make-env.sh`.
+3. **Build:** `deploy/build.sh` (Next's standalone output, as the Mac app ships; the unit starts it with `deploy/start.cjs` from the repo root so `.data/` and `vm/` are where the server looks).
+4. **Service:**
+   ```bash
+   sudo cp deploy/bops-server.service /etc/systemd/system/
+   sudo systemctl daemon-reload && sudo systemctl enable --now bops-server
+   curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3210/
+   ```
+5. **Caddy:** append `deploy/Caddyfile.snippet` to `/etc/caddy/Caddyfile` with the existing bcrypt
+   hash, then `sudo caddy validate --config /etc/caddy/Caddyfile && sudo systemctl reload caddy`.
+6. **Verify:** https://bops.oluseyi.dev → basic auth → Settings → You.
+
+Redeploy after code changes:
+
+```bash
+cd ~/apps/bops && git pull && ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm ci && deploy/build.sh && sudo systemctl restart bops-server
+```
+
+## Syncing with upstream
+
+```bash
+git fetch upstream
+git merge upstream/main     # conflicts only possible at the hooks in lib/server/keychain.ts
+npx next typegen && npx tsc --noEmit -p . && npm run lint
+git push origin main
+```
+
+## Decommissioning boop (after bops answers texts and does real work)
+
+```bash
+sudo systemctl disable --now boop-server
+# remove the trolley.oluseyi.dev block from /etc/caddy/Caddyfile, validate, reload
+# re-point Sendblue's inbound webhook at https://bops.oluseyi.dev/api/channels/sendblue
+```
+
+The `~/apps/boop-agent` checkout and its Convex deployment stay until nothing is missed.

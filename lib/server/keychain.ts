@@ -1,14 +1,18 @@
 import "server-only";
 import { execFile, spawn } from "node:child_process";
+import { fileSecrets } from "./secrets-file";
 
 /**
  * Secrets in the Mac's Keychain, under "Bops Vault". Values go to `security` on stdin, hex-encoded,
  * so they never show up in the process list; reading one back only names the item.
  */
 const SERVICE = "Bops Vault";
+// Fork-local: off a Mac there is no Keychain; secrets go to .data/secrets.json (lib/server/secrets-file.ts).
+const file = process.platform === "darwin" ? null : fileSecrets;
 const q = (s: string) => `"${s.replace(/["\\]/g, "")}"`;
 
 export function setSecret(account: string, value: string) {
+  if (file) return file.set(account, value);
   return new Promise<void>((resolve, reject) => {
     const p = spawn("security", ["-i"], { stdio: ["pipe", "ignore", "pipe"] });
     let err = "";
@@ -19,11 +23,13 @@ export function setSecret(account: string, value: string) {
 }
 
 export function getSecret(account: string) {
+  if (file) return file.get(account);
   return new Promise<string | null>((resolve) =>
     execFile("security", ["find-generic-password", "-s", SERVICE, "-a", account, "-w"], (e, out) => resolve(e ? null : out.replace(/\n$/, ""))),
   );
 }
 
 export function deleteSecret(account: string) {
+  if (file) return file.delete(account);
   return new Promise<void>((resolve) => execFile("security", ["delete-generic-password", "-s", SERVICE, "-a", account], () => resolve()));
 }

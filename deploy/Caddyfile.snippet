@@ -1,0 +1,17 @@
+# bops.oluseyi.dev → the Bops server on 127.0.0.1:3210. Add to /etc/caddy/Caddyfile, then:
+#   sudo caddy validate --config /etc/caddy/Caddyfile && sudo systemctl reload caddy
+# Replace BCRYPT_HASH with the hash already used by the trolley.oluseyi.dev block.
+bops.oluseyi.dev {
+	encode zstd gzip
+	# Webhooks prove themselves by signature (phone, Sendblue, Slack), so they skip the basic auth.
+	@hooks path /api/phone/agentphone /api/phone/openai /api/channels/slack/events /api/channels/sendblue
+	handle @hooks {
+		reverse_proxy 127.0.0.1:3210
+	}
+	handle {
+		basic_auth {
+			oluseyi BCRYPT_HASH
+		}
+		reverse_proxy 127.0.0.1:3210
+	}
+}
