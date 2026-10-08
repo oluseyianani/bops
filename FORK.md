@@ -7,8 +7,9 @@
 
 `oluseyianani/bops`, tracking `nickvasilescu/bops` (`upstream`), run as a single-user, self-hosted
 server on trolley (Hetzner, Linux) instead of the Mac app, and reached in a browser at
-https://bops.oluseyi.dev behind Caddy's basic auth. It replaces the `boop-agent` deployment and
-keeps its Sendblue iMessage number.
+https://bops.oluseyi.dev behind Caddy's basic auth. It runs alongside `boop-agent` (:3456,
+trolley.oluseyi.dev), which stays: the two are different tools. Boop keeps the Sendblue number;
+texting Boppy, if wanted, goes through a Telegram bot (built in, no public webhook needed).
 
 Rules for fork-local work, so `git merge upstream/main` stays painless:
 
@@ -21,19 +22,18 @@ Rules for fork-local work, so `git merge upstream/main` stays painless:
 
 | Piece | Where |
 |---|---|
+| Orgo plan read on `ORGO_API_KEY` when nobody is signed in (else the free Bops computer is never offered) | one line in `lib/server/plan.ts` `orgoPlan()` |
 | Secrets without a macOS Keychain: `.data/secrets.json` (0600), used when `process.platform` isn't darwin | `lib/server/secrets-file.ts`; three hooks in `lib/server/keychain.ts` |
 | `.env.local` from the key files in `~/.config/bops` | `deploy/make-env.sh` |
 | Build and start of the standalone server from the repo root | `deploy/build.sh`, `deploy/start.cjs` |
 | systemd unit (port 3210, loopback, 2 GB cap) and the Caddy block | `deploy/bops-server.service`, `deploy/Caddyfile.snippet` |
 
-Planned: a `sendblue` channel kind next to Telegram and Discord (`lib/server/sendblue.ts`,
-`app/api/channels/sendblue/`), so texts to the old Boop number reach the main bot.
-
 ## What the server needs
 
 Hard requirements: an OpenAI API key (pay-per-use; nothing here can use a ChatGPT, Codex or Claude
-subscription), a second restricted, spend-capped OpenAI key that Bops copies onto the bots'
-computers, and an Orgo API key (the free plan gives one free Bops computer). They live in
+subscription), an OpenAI *environment key* for the bots' computers (made on the dashboard's Agents
+tab → Environments → Keys, in the same project; an ordinary secret key, even with "All"
+permissions, lacks `api.agents.environments.connect`), and an Orgo API key (the free plan gives one free Bops computer). They live in
 `~/.config/bops/{bop_openai,computer_openai,orgo}.env` as `BOPS_OPENAI_API`,
 `COMPUTER_OPENAI_API_RESTRICTED` and `ORGO_API`; `deploy/make-env.sh` turns them into `.env.local`.
 
@@ -57,7 +57,7 @@ npx next typegen && npx tsc --noEmit -p . && npm run lint
 ## Deploying to trolley
 
 trolley: Ubuntu x86_64, 2 vCPU, ~3.8 GB RAM plus a 2 GB swapfile, Node 24, Caddy, Tailscale.
-Boop keeps running on :3456 until the cutover; Bops takes :3210.
+Boop runs on :3456; Bops takes :3210.
 
 1. **Deploy key** (per-repo, as for boop):
    ```bash
@@ -97,17 +97,8 @@ cd ~/apps/bops && git pull && ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm ci && deploy/b
 
 ```bash
 git fetch upstream
-git merge upstream/main     # conflicts only possible at the hooks in lib/server/keychain.ts
+git merge upstream/main     # conflicts only possible at the hooks in lib/server/keychain.ts and plan.ts
 npx next typegen && npx tsc --noEmit -p . && npm run lint
 git push origin main
 ```
 
-## Decommissioning boop (after bops answers texts and does real work)
-
-```bash
-sudo systemctl disable --now boop-server
-# remove the trolley.oluseyi.dev block from /etc/caddy/Caddyfile, validate, reload
-# re-point Sendblue's inbound webhook at https://bops.oluseyi.dev/api/channels/sendblue
-```
-
-The `~/apps/boop-agent` checkout and its Convex deployment stay until nothing is missed.
