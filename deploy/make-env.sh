@@ -25,8 +25,9 @@ ENV
 # Optional services: one file each in ~/.config/bops, <name>.env holding <VAR>=<value>, added when present.
 optional() { # file var-in var-out
   [ -f "$CFG/$1" ] || return 0
-  local v; v=$(grep -m1 "^$2=" "$CFG/$1" | cut -d= -f2-)
-  [ -n "$v" ] && echo "$3=$v" >> .env.local && echo "  + $3 (from $1)"
+  local v; v=$(grep -m1 "^$2=" "$CFG/$1" | cut -d= -f2- || true)
+  [ -n "$v" ] || return 0
+  echo "$3=$v" >> .env.local && echo "  + $3 (from $1)"
 }
 optional honcho.env     HONCHO_API         HONCHO_API_KEY
 optional typesafe.env   TYPESAFE_API       TYPESAFE_API_KEY
