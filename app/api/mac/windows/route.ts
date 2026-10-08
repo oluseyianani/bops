@@ -1,4 +1,5 @@
 import { appWindows, listWindows, mainWindow, sharingMarker } from "@/lib/server/mac-windows";
+import { OUR_HOSTS } from "@/lib/server/our-hosts"; // Fork-local: the server's public name counts as "this Mac"
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  if (!["localhost", "127.0.0.1", "::1"].includes(url.hostname)) return Response.json({ error: "local only" }, { status: 403 });
+  if (!OUR_HOSTS.includes(url.hostname)) return Response.json({ error: "local only" }, { status: 403 });
   // Every window worth watching (?all=1), for the Watch picker.
   if (url.searchParams.get("all")) return Response.json({ windows: await listWindows().catch(() => []) });
   const apps = (url.searchParams.get("apps") ?? "").split(",").map((a) => a.trim()).filter(Boolean).slice(0, 8);

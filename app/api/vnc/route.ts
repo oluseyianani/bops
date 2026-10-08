@@ -1,6 +1,7 @@
 import { orgo } from "@/lib/server/orgo";
 import { bot, getState } from "@/lib/server/store";
 import { workComputer } from "@/lib/server/screens";
+import { OUR_HOSTS } from "@/lib/server/our-hosts"; // Fork-local: the server's public name counts as "this Mac"
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: Request) {
   const host = new URL(request.url).hostname;
-  if (!["localhost", "127.0.0.1", "::1"].includes(host)) return Response.json({ error: "local only" }, { status: 403 });
+  if (!OUR_HOSTS.includes(host)) return Response.json({ error: "local only" }, { status: 403 });
   const url = new URL(request.url);
   const b = bot(url.searchParams.get("bot") ?? "");
   const display = Number(url.searchParams.get("display") ?? 99);

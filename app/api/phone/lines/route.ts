@@ -1,10 +1,11 @@
 import { cloudLines, linesOn, localLines, openLine, unlinkLine } from "@/lib/server/phone-lines";
 import { prettyPhone } from "@/lib/server/phone";
 import { getState } from "@/lib/server/store";
+import { OUR_HOSTS } from "@/lib/server/our-hosts"; // Fork-local: the server's public name counts as "this Mac"
 
 export const dynamic = "force-dynamic";
 
-const local = (request: Request) => ["localhost", "127.0.0.1", "::1"].includes(new URL(request.url).hostname);
+const local = (request: Request) => OUR_HOSTS.includes(new URL(request.url).hostname);
 const digits = (s: string) => s.replace(/\D/g, "").slice(-10);
 
 /** One of the bots' numbers and whose phone it's linked to, as the app shows it (components/app/line-link.tsx). */

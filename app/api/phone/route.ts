@@ -1,9 +1,10 @@
 import { onPostgres } from "@/lib/server/persist";
 import { assignWorkspaceLine, checkWorkspaceLine, ensurePhone, phoneCatchUp, phoneStatus, releaseWorkspaceLine, removeOwnerPhone, setLineCard } from "@/lib/server/phone";
+import { OUR_HOSTS } from "@/lib/server/our-hosts"; // Fork-local: the server's public name counts as "this Mac"
 
 export const dynamic = "force-dynamic";
 
-const local = (request: Request) => ["localhost", "127.0.0.1", "::1"].includes(new URL(request.url).hostname);
+const local = (request: Request) => OUR_HOSTS.includes(new URL(request.url).hostname);
 
 /** Phones for bots (lib/server/phone.ts): whether it's on, texting and calling status, each bot's number. */
 export async function GET() {
