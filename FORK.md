@@ -23,6 +23,7 @@ Rules for fork-local work, so `git merge upstream/main` stays painless:
 | Piece | Where |
 |---|---|
 | Orgo plan read on `ORGO_API_KEY` when nobody is signed in (else the free Bops computer is never offered) | one line in `lib/server/plan.ts` `orgoPlan()` |
+| Routes meant for "this Mac only" (phone, lines, call, vnc, mac) also take `BOPS_PUBLIC_HOST`, as proxy.ts does | `lib/server/our-hosts.ts`; one import + one token in each of those six routes |
 | Secrets without a macOS Keychain: `.data/secrets.json` (0600), used when `process.platform` isn't darwin | `lib/server/secrets-file.ts`; three hooks in `lib/server/keychain.ts` |
 | `.env.local` from the key files in `~/.config/bops` | `deploy/make-env.sh` |
 | Build and start of the standalone server from the repo root | `deploy/build.sh`, `deploy/start.cjs` |
@@ -99,7 +100,7 @@ cd ~/apps/bops && git pull && ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm ci && deploy/b
 
 ```bash
 git fetch upstream
-git merge upstream/main     # conflicts only possible at the hooks in lib/server/keychain.ts and plan.ts
+git merge upstream/main     # conflicts only possible at the one-line hooks (keychain.ts, plan.ts, the six local-only routes)
 npx next typegen && npx tsc --noEmit -p . && npm run lint
 git push origin main
 ```
