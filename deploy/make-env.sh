@@ -34,6 +34,8 @@ optional composio.env   COMPOSIO_API       COMPOSIO_API_KEY
 optional tailscale.env  TAILSCALE_AUTH     TAILSCALE_AUTH_KEY
 optional agentmail.env  AGENTMAIL_API      AGENTMAIL_API_KEY
 optional agentphone.env AGENTPHONE_API     AGENTPHONE_API_KEY
+# With AgentPhone, texts and call turns are delivered to this server (Caddy lets that path through without auth).
+[ -f "$CFG/agentphone.env" ] && echo "BOPS_AGENTPHONE_HOOK_URL=https://${HOST}/api/phone/agentphone" >> .env.local
 optional agentphone.env AGENTPHONE_SUB     AGENTPHONE_SUB_ACCOUNT
 optional agentphone.env AGENTPHONE_SECRET  AGENTPHONE_WEBHOOK_SECRET
 optional phone.env      OWNER_PHONES       BOPS_OWNER_PHONES
