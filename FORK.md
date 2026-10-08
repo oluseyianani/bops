@@ -37,10 +37,12 @@ permissions, lacks `api.agents.environments.connect`), and an Orgo API key (the 
 `~/.config/bops/{bop_openai,computer_openai,orgo}.env` as `BOPS_OPENAI_API`,
 `COMPUTER_OPENAI_API_RESTRICTED` and `ORGO_API`; `deploy/make-env.sh` turns them into `.env.local`.
 
-Optional, added to `.env.local` by hand later: `HONCHO_API_KEY` (memory), `TYPESAFE_API_KEY`
-(judgment calls), `COMPOSIO_API_KEY` (apps; same key as boop), `TAILSCALE_AUTH_KEY` (live screen
-view over the tailnet), `AGENTMAIL_API_KEY` (bot inboxes), and the Sendblue settings once the
-channel exists.
+Optional, one file each in `~/.config/bops`, picked up by `make-env.sh` when present:
+`honcho.env` (`HONCHO_API`, memory), `typesafe.env` (`TYPESAFE_API`, judgment calls),
+`composio.env` (`COMPOSIO_API`, apps), `tailscale.env` (`TAILSCALE_AUTH`, live screen view),
+`agentmail.env` (`AGENTMAIL_API`, bot inboxes), `agentphone.env` (`AGENTPHONE_API`,
+`AGENTPHONE_SUB`, `AGENTPHONE_SECRET`; texts and calls) and `phone.env` (`OWNER_PHONES`: your own
+mobile(s), E.164, which count as you without a texted code; `PHONE_AREA`).
 
 Models default to `gpt-6.1-sol`; `make-env.sh` pins `BOPS_HARD_MODEL` to it too (astra costs 5x)
 and sets `BOPS_CHAT_EFFORT=high`.

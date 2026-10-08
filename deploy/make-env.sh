@@ -21,7 +21,21 @@ BOPS_PUBLIC_URL=https://${HOST}
 BOPS_CHAT_EFFORT=high
 # Hard tasks on the same model as the rest (gpt-6-astra costs five times as much).
 BOPS_HARD_MODEL=gpt-6.1-sol
-# Optional services, filled in later (see FORK.md): HONCHO_API_KEY, TYPESAFE_API_KEY, COMPOSIO_API_KEY,
-# TAILSCALE_AUTH_KEY, AGENTMAIL_API_KEY, SENDBLUE_*.
 ENV
+# Optional services: one file each in ~/.config/bops, <name>.env holding <VAR>=<value>, added when present.
+optional() { # file var-in var-out
+  [ -f "$CFG/$1" ] || return 0
+  local v; v=$(grep -m1 "^$2=" "$CFG/$1" | cut -d= -f2-)
+  [ -n "$v" ] && echo "$3=$v" >> .env.local && echo "  + $3 (from $1)"
+}
+optional honcho.env     HONCHO_API         HONCHO_API_KEY
+optional typesafe.env   TYPESAFE_API       TYPESAFE_API_KEY
+optional composio.env   COMPOSIO_API       COMPOSIO_API_KEY
+optional tailscale.env  TAILSCALE_AUTH     TAILSCALE_AUTH_KEY
+optional agentmail.env  AGENTMAIL_API      AGENTMAIL_API_KEY
+optional agentphone.env AGENTPHONE_API     AGENTPHONE_API_KEY
+optional agentphone.env AGENTPHONE_SUB     AGENTPHONE_SUB_ACCOUNT
+optional agentphone.env AGENTPHONE_SECRET  AGENTPHONE_WEBHOOK_SECRET
+optional phone.env      OWNER_PHONES       BOPS_OWNER_PHONES
+optional phone.env      PHONE_AREA         BOPS_PHONE_AREA
 echo "wrote .env.local for ${HOST}"
