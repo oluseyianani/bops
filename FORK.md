@@ -84,6 +84,9 @@ Boop keeps running on :3456 until the cutover; Bops takes :3210.
    hash, then `sudo caddy validate --config /etc/caddy/Caddyfile && sudo systemctl reload caddy`.
 6. **Verify:** https://bops.oluseyi.dev → basic auth → Settings → You.
 
+Never test-boot the server by hand on :3210 while the unit exists: Next's `next-server` child
+outlives its parent, keeps the port, and the unit then loops on restart (kill the child by pid).
+
 Redeploy after code changes:
 
 ```bash
